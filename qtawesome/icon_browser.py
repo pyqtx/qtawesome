@@ -25,8 +25,9 @@ class IconBrowser(QtWidgets.QMainWindow):
         self.setMinimumSize(400, 300)
         self.setWindowTitle('QtAwesome Icon Browser')
 
-        self.settings = QtCore.QSettings("qta-browser")
-        last_col = int(self.settings.value("view_cols", DEFAULT_VIEW_COLUMNS))
+        self.settings = QtCore.QSettings("QtAwesome", "qta-browser")
+        last_col = int(self.settings.value("view_columns", DEFAULT_VIEW_COLUMNS))
+        last_style = self.settings.value("style", 0)
 
         qtawesome._instance()
         fontMaps = qtawesome._resource['iconic'].charmap
@@ -71,9 +72,9 @@ class IconBrowser(QtWidgets.QMainWindow):
         lyt.addWidget(self._comboBox)
         lyt.addWidget(self._lineEdit)
         self._combo_style = QtWidgets.QComboBox(self)
-        self._combo_style.addItems([
-            qtawesome.styles.DEFAULT_DARK_PALETTE,
-            qtawesome.styles.DEFAULT_LIGHT_PALETTE])
+        self._combo_style.addItem(qtawesome.styles.DEFAULT_DARK_PALETTE, 0)
+        self._combo_style.addItem(qtawesome.styles.DEFAULT_LIGHT_PALETTE, 1)
+        self._combo_style.setCurrentIndex(self._combo_style.findData(last_style))
         self._combo_style.currentTextChanged.connect(self._updateStyle)
         lyt.addWidget(self._combo_style)
 
@@ -83,7 +84,7 @@ class IconBrowser(QtWidgets.QMainWindow):
             self._combo_cols.addItem(str(no), no)
         self._combo_cols.setCurrentIndex(self._combo_cols.findData(last_col))
         lyt.addWidget(self._combo_cols)
-        #self._combo_style.currentTextChanged.connect(self._updateStyle)
+        self._combo_cols.currentTextChanged.connect(self._updateColumns)
 
         searchBarFrame = QtWidgets.QFrame(self)
         searchBarFrame.setLayout(lyt)
@@ -141,6 +142,7 @@ class IconBrowser(QtWidgets.QMainWindow):
 
         geo.moveCenter(centerPoint)
         self.setGeometry(geo)
+        self._updateStyle(self._combo_style.currentText())
 
     def _updateStyle(self, text: str):
         _app = QtWidgets.QApplication.instance()
@@ -150,6 +152,11 @@ class IconBrowser(QtWidgets.QMainWindow):
         else:
             qtawesome.reset_cache()
             qtawesome.light(_app)
+        self.settings.setValue("style", self._combo_style.currentData())
+
+    def _updateColumns(self):
+        self._listView.set_cols(self._combo_cols.currentData())
+        self.settings.setValue("view_columns", self._combo_cols.currentData())
 
     def _updateFilter(self):
         """
@@ -238,7 +245,7 @@ class IconListView(QtWidgets.QListView):
         # The minus 30 above ensures we don't end up with an item width that
         # can't be drawn the expected number of times across the view without
         # being wrapped. Without this, the view can flicker during resize
-        tileWidth = width / DEFAULT_VIEW_COLUMNS
+        tileWidth = width / self._columns
         iconWidth = int(tileWidth * 0.8)
         # tileWidth needs to be an integer for setGridSize
         tileWidth = int(tileWidth)
