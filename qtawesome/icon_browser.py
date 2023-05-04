@@ -31,15 +31,13 @@ class IconBrowser(QtWidgets.QMainWindow):
             for iconName in fontData:
                 iconNames.append('%s.%s' % (fontCollection, iconName))
 
-        self.setMinimumSize(600, 600)
+        self.setMinimumSize(800, 800)
         self.setWindowTitle('QtAwesome Icon Browser')
         self.setWindowIcon(qtawesome.icon("mdi6.panda"))
 
         self.settings = QtCore.QSettings("QtAwesome", "qta-browser")
         last_col = int(self.settings.value("view_columns", DEFAULT_VIEW_COLUMNS))
         last_style = self.settings.value("style", 0)
-
-
 
         self._filterTimer = QtCore.QTimer(self)
         self._filterTimer.setSingleShot(True)
@@ -63,6 +61,7 @@ class IconBrowser(QtWidgets.QMainWindow):
 
         toolbar = QtWidgets.QHBoxLayout()
 
+        # filter group
         tbgFont = ToolBarGroup("Filter")
         toolbar.addWidget(tbgFont)
         self._comboFont = QtWidgets.QComboBox(self)
@@ -85,6 +84,7 @@ class IconBrowser(QtWidgets.QMainWindow):
         buttClear.clicked.connect(self._clearClicked)
         tbgFont.addWidget(buttClear)
 
+        # selected group
         tbgSelected = ToolBarGroup("Selected")
         toolbar.addWidget(tbgSelected)
 
@@ -100,16 +100,13 @@ class IconBrowser(QtWidgets.QMainWindow):
 
         self._copyButton = QtWidgets.QPushButton('Copy Name', self)
         self._copyButton.clicked.connect(self._copyIconText)
+        self._copyButton.setDisabled(True)
         tbgSelected.addWidget(self._copyButton)
-        #toolbar.addSeparator()
 
-        # expander = QtWidgets.QWidget()
-        # sp = expander.sizePolicy()
-        # sp.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
-        # expander.setSizePolicy(sp)
-        # toolbar.addWidget(expander)
+
         toolbar.addStretch(100)
-        ## Style
+
+        # Style
         tbgroup = ToolBarGroup("Style")
         toolbar.addWidget(tbgroup)
 
@@ -121,7 +118,7 @@ class IconBrowser(QtWidgets.QMainWindow):
         tbgroup.addWidget(self._combo_style)
 
 
-        ## Cols across
+        # Cols across
         tbcols = ToolBarGroup("Columns")
         toolbar.addWidget(tbcols)
         self._combo_cols = QtWidgets.QComboBox(self)
@@ -250,8 +247,11 @@ class IconBrowser(QtWidgets.QMainWindow):
         indexes = self._listView.selectedIndexes()
         if not indexes:
             self._nameField.setText("")
-        else:
-            self._nameField.setText(indexes[0].data())
+            self._copyButton.setDisabled(True)
+            return
+
+        self._nameField.setText(indexes[0].data())
+        self._copyButton.setDisabled(False)
 
 
 class IconListView(QtWidgets.QListView):
@@ -271,12 +271,9 @@ class IconListView(QtWidgets.QListView):
 
     def _calc_cols(self):
         """
-        Re-implemented to re-calculate the grid size to provide scaling icons
-
-        Parameters
-        ----------
-        event : QtCore.QEvent
+        re-calculate the grid size to provide scaling icons
         """
+
         width = self.viewport().width() - 30
         # The minus 30 above ensures we don't end up with an item width that
         # can't be drawn the expected number of times across the view without
@@ -327,6 +324,7 @@ class ToolBarGroup(QtWidgets.QWidget):
 
         vlay = QtWidgets.QVBoxLayout()
         vlay.setContentsMargins(0,0,0,0)
+        vlay.setSpacing(2)
         self.setLayout(vlay)
 
         lbl = QtWidgets.QLabel(title)
@@ -336,6 +334,7 @@ class ToolBarGroup(QtWidgets.QWidget):
 
         self.tbar = QtWidgets.QHBoxLayout()
         self.tbar.setContentsMargins(0, 0, 0, 0)
+        self.tbar.setSpacing(2)
         vlay.addLayout(self.tbar)
 
     def addWidget(self, widget):
