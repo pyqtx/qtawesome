@@ -57,62 +57,74 @@ class IconBrowser(QtWidgets.QMainWindow):
         self._listView.doubleClicked.connect(self._copyIconText)
         self._listView.selectionModel().selectionChanged.connect(self._updateNameField)
 
+        toolbar = QtWidgets.QToolBar()
+
+        self._comboFont = QtWidgets.QComboBox(self)
+        self._comboFont.setFixedWidth(75)
+        self._comboFont.addItems([ALL_COLLECTIONS] + sorted(fontMaps.keys()))
+        self._comboFont.currentIndexChanged.connect(self._triggerImmediateUpdate)
+        toolbar.addWidget(self._comboFont)
+
         self._lineEdit = QtWidgets.QLineEdit(self)
+        self._lineEdit.setFixedWidth(200)
         self._lineEdit.setAlignment(QtCore.Qt.AlignLeft)
         self._lineEdit.textChanged.connect(self._triggerDelayedUpdate)
         self._lineEdit.returnPressed.connect(self._triggerImmediateUpdate)
+        toolbar.addWidget(self._lineEdit)
 
-        self._comboBox = QtWidgets.QComboBox(self)
-        self._comboBox.setMinimumWidth(75)
-        self._comboBox.currentIndexChanged.connect(self._triggerImmediateUpdate)
-        self._comboBox.addItems([ALL_COLLECTIONS] + sorted(fontMaps.keys()))
+        toolbar.addSeparator()
 
-        lyt = QtWidgets.QHBoxLayout()
-        lyt.setContentsMargins(0, 0, 0, 0)
-        lyt.addWidget(self._comboBox)
-        lyt.addWidget(self._lineEdit)
+        self._nameField = QtWidgets.QLineEdit(self)
+        self._nameField.setAlignment(QtCore.Qt.AlignCenter)
+        self._nameField.setReadOnly(True)
+        self._nameField.setFixedWidth(250)
+        fnt = self._nameField.font()
+        fnt.setFamily("monospace")
+        fnt.setBold(True)
+        self._nameField.setFont(fnt)
+        toolbar.addWidget(self._nameField)
+
+        self._copyButton = QtWidgets.QPushButton('Copy Name', self)
+        self._copyButton.clicked.connect(self._copyIconText)
+        toolbar.addWidget(self._copyButton)
+        toolbar.addSeparator()
+
+        expander = QtWidgets.QWidget()
+        sp = expander.sizePolicy()
+        sp.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        expander.setSizePolicy(sp)
+        toolbar.addWidget(expander)
+
         self._combo_style = QtWidgets.QComboBox(self)
         self._combo_style.addItem(qtawesome.styles.DEFAULT_DARK_PALETTE, 0)
         self._combo_style.addItem(qtawesome.styles.DEFAULT_LIGHT_PALETTE, 1)
         self._combo_style.setCurrentIndex(self._combo_style.findData(last_style))
         self._combo_style.currentTextChanged.connect(self._updateStyle)
-        lyt.addWidget(self._combo_style)
+        toolbar.addWidget(self._combo_style)
 
 
         self._combo_cols = QtWidgets.QComboBox(self)
         for idx, no in enumerate([5, 10, 15, 20, 25, 30]):
             self._combo_cols.addItem(str(no), no)
         self._combo_cols.setCurrentIndex(self._combo_cols.findData(last_col))
-        lyt.addWidget(self._combo_cols)
+        toolbar.addWidget(self._combo_cols)
         self._combo_cols.currentTextChanged.connect(self._updateColumns)
 
-        searchBarFrame = QtWidgets.QFrame(self)
-        searchBarFrame.setLayout(lyt)
-
-        self._nameField = QtWidgets.QLineEdit(self)
-        self._nameField.setAlignment(QtCore.Qt.AlignCenter)
-        self._nameField.setReadOnly(True)
-
-        self._copyButton = QtWidgets.QPushButton('Copy Name', self)
-        self._copyButton.clicked.connect(self._copyIconText)
-
         lyt = QtWidgets.QVBoxLayout()
-        lyt.addWidget(searchBarFrame)
+        lyt.addWidget(toolbar)
         lyt.addWidget(self._listView)
-        lyt.addWidget(self._nameField)
-        lyt.addWidget(self._copyButton)
 
         frame = QtWidgets.QFrame(self)
         frame.setLayout(lyt)
 
         self.setCentralWidget(frame)
 
-        self.setTabOrder(self._comboBox, self._lineEdit)
+        self.setTabOrder(self._comboFont, self._lineEdit)
         self.setTabOrder(self._lineEdit, self._combo_style)
         self.setTabOrder(self._combo_style, self._listView)
         self.setTabOrder(self._listView, self._nameField)
         self.setTabOrder(self._nameField, self._copyButton)
-        self.setTabOrder(self._copyButton, self._comboBox)
+        self.setTabOrder(self._copyButton, self._comboFont)
 
         QtWidgets.QShortcut(
             QtGui.QKeySequence(QtCore.Qt.Key_Return),
@@ -165,7 +177,7 @@ class IconBrowser(QtWidgets.QMainWindow):
         """
         reString = ""
 
-        group = self._comboBox.currentText()
+        group = self._comboFont.currentText()
         if group != ALL_COLLECTIONS:
             reString += r"^%s\." % group
 
