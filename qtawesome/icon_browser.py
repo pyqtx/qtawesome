@@ -33,7 +33,7 @@ class IconBrowser(QtWidgets.QMainWindow):
 
         self.setMinimumSize(600, 600)
         self.setWindowTitle('QtAwesome Icon Browser')
-        self.setWindowIcon(qtawesome.icon("mdi.human-capacity-increase"))
+        self.setWindowIcon(qtawesome.icon("mdi6.panda"))
 
         self.settings = QtCore.QSettings("QtAwesome", "qta-browser")
         last_col = int(self.settings.value("view_columns", DEFAULT_VIEW_COLUMNS))
@@ -71,14 +71,19 @@ class IconBrowser(QtWidgets.QMainWindow):
         self._comboFont.currentIndexChanged.connect(self._triggerImmediateUpdate)
         tbgFont.addWidget(self._comboFont)
 
-        self._lineEdit = QtWidgets.QLineEdit(self)
-        self._lineEdit.setFixedWidth(200)
-        self._lineEdit.setAlignment(QtCore.Qt.AlignLeft)
-        self._lineEdit.textChanged.connect(self._triggerDelayedUpdate)
-        self._lineEdit.returnPressed.connect(self._triggerImmediateUpdate)
-        tbgFont.addWidget(self._lineEdit)
+        self._lineEditFilter = QtWidgets.QLineEdit(self)
+        self._lineEditFilter.setFixedWidth(200)
+        self._lineEditFilter.setAlignment(QtCore.Qt.AlignLeft)
+        self._lineEditFilter.textChanged.connect(self._triggerDelayedUpdate)
+        self._lineEditFilter.returnPressed.connect(self._triggerImmediateUpdate)
+        tbgFont.addWidget(self._lineEditFilter)
 
-        #toolbar.addSeparator()
+        buttClear = QtWidgets.QToolButton()
+        buttClear.setAutoRaise(True)
+        buttClear.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
+        buttClear.setIcon(qtawesome.icon("mdi.alpha-x"))
+        buttClear.clicked.connect(self._clearClicked)
+        tbgFont.addWidget(buttClear)
 
         tbgSelected = ToolBarGroup("Selected")
         toolbar.addWidget(tbgSelected)
@@ -135,8 +140,8 @@ class IconBrowser(QtWidgets.QMainWindow):
 
         self.setCentralWidget(frame)
 
-        self.setTabOrder(self._comboFont, self._lineEdit)
-        self.setTabOrder(self._lineEdit, self._combo_style)
+        self.setTabOrder(self._comboFont, self._lineEditFilter)
+        self.setTabOrder(self._lineEditFilter, self._combo_style)
         self.setTabOrder(self._combo_style, self._listView)
         self.setTabOrder(self._listView, self._nameField)
         self.setTabOrder(self._nameField, self._copyButton)
@@ -150,10 +155,10 @@ class IconBrowser(QtWidgets.QMainWindow):
         QtWidgets.QShortcut(
             QtGui.QKeySequence("Ctrl+F"),
             self,
-            self._lineEdit.setFocus,
+            self._lineEditFilter.setFocus,
         )
 
-        self._lineEdit.setFocus()
+        self._lineEditFilter.setFocus()
 
         geo = self.geometry()
 
@@ -197,7 +202,7 @@ class IconBrowser(QtWidgets.QMainWindow):
         if group != ALL_COLLECTIONS:
             reString += r"^%s\." % group
 
-        searchTerm = self._lineEdit.text()
+        searchTerm = self._lineEditFilter.text()
         if searchTerm:
             reString += ".*%s.*$" % searchTerm
 
@@ -223,6 +228,9 @@ class IconBrowser(QtWidgets.QMainWindow):
         """
         self._filterTimer.stop()
         self._updateFilter()
+
+    def _clearClicked(self):
+        self._lineEditFilter.clear()
 
     def _copyIconText(self):
         """
