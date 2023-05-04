@@ -8,7 +8,7 @@ import qtawesome
 
 # TODO: Set icon colour and copy code with color kwarg
 
-VIEW_COLUMNS = 5
+DEFAULT_VIEW_COLUMNS = 10
 AUTO_SEARCH_TIMEOUT = 500
 ALL_COLLECTIONS = 'All'
 
@@ -24,6 +24,9 @@ class IconBrowser(QtWidgets.QMainWindow):
         super().__init__()
         self.setMinimumSize(400, 300)
         self.setWindowTitle('QtAwesome Icon Browser')
+
+        self.settings = QtCore.QSettings("qta-browser")
+        last_col = int(self.settings.value("view_cols", DEFAULT_VIEW_COLUMNS))
 
         qtawesome._instance()
         fontMaps = qtawesome._resource['iconic'].charmap
@@ -45,7 +48,7 @@ class IconBrowser(QtWidgets.QMainWindow):
         self._proxyModel.setSourceModel(model)
         self._proxyModel.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        self._listView = IconListView(self)
+        self._listView = IconListView(self, last_col)
         self._listView.setUniformItemSizes(True)
         self._listView.setViewMode(QtWidgets.QListView.IconMode)
         self._listView.setModel(self._proxyModel)
@@ -54,7 +57,7 @@ class IconBrowser(QtWidgets.QMainWindow):
         self._listView.selectionModel().selectionChanged.connect(self._updateNameField)
 
         self._lineEdit = QtWidgets.QLineEdit(self)
-        self._lineEdit.setAlignment(QtCore.Qt.AlignCenter)
+        self._lineEdit.setAlignment(QtCore.Qt.AlignLeft)
         self._lineEdit.textChanged.connect(self._triggerDelayedUpdate)
         self._lineEdit.returnPressed.connect(self._triggerImmediateUpdate)
 
@@ -73,6 +76,14 @@ class IconBrowser(QtWidgets.QMainWindow):
             qtawesome.styles.DEFAULT_LIGHT_PALETTE])
         self._combo_style.currentTextChanged.connect(self._updateStyle)
         lyt.addWidget(self._combo_style)
+
+
+        self._combo_cols = QtWidgets.QComboBox(self)
+        for idx, no in enumerate([5, 10, 15, 20, 25, 30]):
+            self._combo_cols.addItem(str(no), no)
+        self._combo_cols.setCurrentIndex(self._combo_cols.findData(last_col))
+        lyt.addWidget(self._combo_cols)
+        #self._combo_style.currentTextChanged.connect(self._updateStyle)
 
         searchBarFrame = QtWidgets.QFrame(self)
         searchBarFrame.setLayout(lyt)
@@ -206,11 +217,16 @@ class IconListView(QtWidgets.QListView):
     columns are always drawn.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent, columns):
         super().__init__(parent)
+        self._columns = columns
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
 
-    def resizeEvent(self, event):
+    def set_cols(self, cols):
+        self._columns = cols
+        self._calc_cols()
+
+    def _calc_cols(self):
         """
         Re-implemented to re-calculate the grid size to provide scaling icons
 
@@ -222,7 +238,7 @@ class IconListView(QtWidgets.QListView):
         # The minus 30 above ensures we don't end up with an item width that
         # can't be drawn the expected number of times across the view without
         # being wrapped. Without this, the view can flicker during resize
-        tileWidth = width / VIEW_COLUMNS
+        tileWidth = width / DEFAULT_VIEW_COLUMNS
         iconWidth = int(tileWidth * 0.8)
         # tileWidth needs to be an integer for setGridSize
         tileWidth = int(tileWidth)
@@ -230,6 +246,8 @@ class IconListView(QtWidgets.QListView):
         self.setGridSize(QtCore.QSize(tileWidth, tileWidth))
         self.setIconSize(QtCore.QSize(iconWidth, iconWidth))
 
+    def resizeEvent(self, event):
+        self._calc_cols()
         return super().resizeEvent(event)
 
 
