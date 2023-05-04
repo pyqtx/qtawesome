@@ -22,12 +22,6 @@ class IconBrowser(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setMinimumSize(400, 300)
-        self.setWindowTitle('QtAwesome Icon Browser')
-
-        self.settings = QtCore.QSettings("QtAwesome", "qta-browser")
-        last_col = int(self.settings.value("view_columns", DEFAULT_VIEW_COLUMNS))
-        last_style = self.settings.value("style", 0)
 
         qtawesome._instance()
         fontMaps = qtawesome._resource['iconic'].charmap
@@ -36,6 +30,16 @@ class IconBrowser(QtWidgets.QMainWindow):
         for fontCollection, fontData in fontMaps.items():
             for iconName in fontData:
                 iconNames.append('%s.%s' % (fontCollection, iconName))
+
+        self.setMinimumSize(600, 600)
+        self.setWindowTitle('QtAwesome Icon Browser')
+        self.setWindowIcon(qtawesome.icon("mdi.human-capacity-increase"))
+
+        self.settings = QtCore.QSettings("QtAwesome", "qta-browser")
+        last_col = int(self.settings.value("view_columns", DEFAULT_VIEW_COLUMNS))
+        last_style = self.settings.value("style", 0)
+
+
 
         self._filterTimer = QtCore.QTimer(self)
         self._filterTimer.setSingleShot(True)
@@ -57,22 +61,27 @@ class IconBrowser(QtWidgets.QMainWindow):
         self._listView.doubleClicked.connect(self._copyIconText)
         self._listView.selectionModel().selectionChanged.connect(self._updateNameField)
 
-        toolbar = QtWidgets.QToolBar()
+        toolbar = QtWidgets.QHBoxLayout()
 
+        tbgFont = ToolBarGroup("Filter")
+        toolbar.addWidget(tbgFont)
         self._comboFont = QtWidgets.QComboBox(self)
         self._comboFont.setFixedWidth(75)
         self._comboFont.addItems([ALL_COLLECTIONS] + sorted(fontMaps.keys()))
         self._comboFont.currentIndexChanged.connect(self._triggerImmediateUpdate)
-        toolbar.addWidget(self._comboFont)
+        tbgFont.addWidget(self._comboFont)
 
         self._lineEdit = QtWidgets.QLineEdit(self)
         self._lineEdit.setFixedWidth(200)
         self._lineEdit.setAlignment(QtCore.Qt.AlignLeft)
         self._lineEdit.textChanged.connect(self._triggerDelayedUpdate)
         self._lineEdit.returnPressed.connect(self._triggerImmediateUpdate)
-        toolbar.addWidget(self._lineEdit)
+        tbgFont.addWidget(self._lineEdit)
 
-        toolbar.addSeparator()
+        #toolbar.addSeparator()
+
+        tbgSelected = ToolBarGroup("Selected")
+        toolbar.addWidget(tbgSelected)
 
         self._nameField = QtWidgets.QLineEdit(self)
         self._nameField.setAlignment(QtCore.Qt.AlignCenter)
@@ -82,36 +91,43 @@ class IconBrowser(QtWidgets.QMainWindow):
         fnt.setFamily("monospace")
         fnt.setBold(True)
         self._nameField.setFont(fnt)
-        toolbar.addWidget(self._nameField)
+        tbgSelected.addWidget(self._nameField)
 
         self._copyButton = QtWidgets.QPushButton('Copy Name', self)
         self._copyButton.clicked.connect(self._copyIconText)
-        toolbar.addWidget(self._copyButton)
-        toolbar.addSeparator()
+        tbgSelected.addWidget(self._copyButton)
+        #toolbar.addSeparator()
 
-        expander = QtWidgets.QWidget()
-        sp = expander.sizePolicy()
-        sp.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
-        expander.setSizePolicy(sp)
-        toolbar.addWidget(expander)
+        # expander = QtWidgets.QWidget()
+        # sp = expander.sizePolicy()
+        # sp.setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        # expander.setSizePolicy(sp)
+        # toolbar.addWidget(expander)
+        toolbar.addStretch(100)
+        ## Style
+        tbgroup = ToolBarGroup("Style")
+        toolbar.addWidget(tbgroup)
 
         self._combo_style = QtWidgets.QComboBox(self)
         self._combo_style.addItem(qtawesome.styles.DEFAULT_DARK_PALETTE, 0)
         self._combo_style.addItem(qtawesome.styles.DEFAULT_LIGHT_PALETTE, 1)
         self._combo_style.setCurrentIndex(self._combo_style.findData(last_style))
         self._combo_style.currentTextChanged.connect(self._updateStyle)
-        toolbar.addWidget(self._combo_style)
+        tbgroup.addWidget(self._combo_style)
 
 
+        ## Cols across
+        tbcols = ToolBarGroup("Columns")
+        toolbar.addWidget(tbcols)
         self._combo_cols = QtWidgets.QComboBox(self)
         for idx, no in enumerate([5, 10, 15, 20, 25, 30]):
             self._combo_cols.addItem(str(no), no)
         self._combo_cols.setCurrentIndex(self._combo_cols.findData(last_col))
-        toolbar.addWidget(self._combo_cols)
+        tbcols.addWidget(self._combo_cols)
         self._combo_cols.currentTextChanged.connect(self._updateColumns)
 
         lyt = QtWidgets.QVBoxLayout()
-        lyt.addWidget(toolbar)
+        lyt.addLayout(toolbar)
         lyt.addWidget(self._listView)
 
         frame = QtWidgets.QFrame(self)
@@ -295,6 +311,29 @@ class IconModel(QtCore.QStringListModel):
             iconString = self.data(index, role=QtCore.Qt.DisplayRole)
             return qtawesome.icon(iconString)
         return super().data(index, role)
+
+
+class ToolBarGroup(QtWidgets.QWidget):
+    def __init__(self, title):
+        super().__init__()
+
+        vlay = QtWidgets.QVBoxLayout()
+        vlay.setContentsMargins(0,0,0,0)
+        self.setLayout(vlay)
+
+        lbl = QtWidgets.QLabel(title)
+        lbl.setFrameShape(QtWidgets.QFrame.Panel)
+        lbl.setFrameShadow(QtWidgets.QFrame.Raised)
+        vlay.addWidget(lbl)
+
+        self.tbar = QtWidgets.QHBoxLayout()
+        self.tbar.setContentsMargins(0, 0, 0, 0)
+        vlay.addLayout(self.tbar)
+
+    def addWidget(self, widget):
+        self.tbar.addWidget(widget)
+
+
 
 
 def run():
